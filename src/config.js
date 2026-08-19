@@ -48,10 +48,8 @@ module.exports = {
 
   beem: {
     api: val('BEEM_API', 'https://messaging-service.co.tz/api/sms/v2/text/single'),
-    apiKey: val('BEEM_API_KEY'),
-    secretKey: val('BEEM_SECRET_KEY'),
-    sourceAddr: val('BEEM_SOURCE_ADDR', 'INFO'),
-    encoding: num('BEEM_ENCODING', 0),
+    token: val('BEEM_TOKEN'),
+    from: val('BEEM_FROM', 'INFO'),
   },
 
   onfon: {

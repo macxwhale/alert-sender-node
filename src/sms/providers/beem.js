@@ -1,50 +1,25 @@
 'use strict';
-/**
- * Beem Africa SMS provider (NEW).
- * Docs: https://documenter.getpostman.com/view/1679195/2sAYkDP1XN
- * Host: https://messaging-service.co.tz  (v2)
- *
- * Endpoint (single):  POST /api/sms/v2/text/single
- * Auth:               Authorization: Basic base64(API_KEY:SECRET_KEY)
- * Body:
- *   {
- *     "source_addr": "INFO",
- *     "encoding": 0,
- *     "schedule_time": "",
- *     "message": "...",
- *     "recipients": [ { "recipient_id": 1, "dest_addr": "2557XXXXXXXX" } ]
- *   }
- *
- * Success: HTTP 200 and a "PENDING"/"ENROUTE (SENT)" status group in the body.
- */
 
-function normalizeMsisdn(to) {
-  // Beem expects international format without '+'. Adjust prefix rules as needed.
-  let n = String(to).replace(/[^\d]/g, '');
-  return n;
-}
-
-async function sendSMS({ to, message, config, log }) {
+async function sendSMS({ to, message, row, config, log }) {
   const c = config.beem;
-  if (!c.apiKey || !c.secretKey) throw new Error('Beem: BEEM_API_KEY / BEEM_SECRET_KEY not set');
+  if (!c.token) throw new Error('Beem: BEEM_TOKEN not set');
 
-  const auth = 'Basic ' + Buffer.from(`${c.apiKey}:${c.secretKey}`).toString('base64');
   const body = {
-    source_addr: c.sourceAddr,
-    encoding: c.encoding,
-    schedule_time: '',
-    message,
-    recipients: [{ recipient_id: 1, dest_addr: normalizeMsisdn(to) }],
+    from: c.from,
+    to: String(to).replace(/[^\d]/g, ''), // digits only, no +
+    text: message,
+    flash: 0,
+    reference: String(row?.Id || row?.id || Date.now()),
   };
 
-  log.debug(`Beem: POST ${c.api} -> ${JSON.stringify(body.recipients)}`);
+  log.debug(`Beem: POST ${c.api} -> to=${body.to}`);
 
   const res = await fetch(c.api, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       Accept: 'application/json',
-      Authorization: auth,
+      Authorization: `Bearer ${c.token}`,
     },
     body: JSON.stringify(body),
   });
@@ -54,14 +29,7 @@ async function sendSMS({ to, message, config, log }) {
   try { json = JSON.parse(text); } catch (_) { json = null; }
   log.debug(`Beem response ${res.status}: ${text}`);
 
-  // Beem returns 200 with { "successful": true, ... } or a status group.
-  const grp = json && (json.groupName || (json.status && json.status.groupName));
-  const ok =
-    res.ok &&
-    (json?.successful === true ||
-      /PENDING|ENROUTE|DELIVER|SENT/i.test(String(grp || '')) ||
-      /successfully/i.test(text));
-
+  const ok = res.ok && json?.success !== false;
   return { ok, info: text };
 }
 
