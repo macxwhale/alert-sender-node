@@ -59,12 +59,26 @@ async function sendOne(provider, row) {
   }
 }
 
-/** Run N workers over the batch (config.threads.sms concurrency). */
+/** Send all rows, using sendBatch (one API call per unique message) if available. */
 async function processBatch(provider, rows) {
+  if (provider.sendBatch) {
+    const results = await provider.sendBatch({ rows, config, log });
+    await Promise.all(results.map(({ row, ok, info }) => {
+      const id = pick(row, 'Id', 'id');
+      const retries = Number(pick(row, 'Retries', 'retries') ?? 0);
+      if (ok) {
+        log.info(`${provider.name} SMS send successful (id=${id})`);
+        return updateStatus(id, config.status.sent, retries);
+      }
+      log.error(`error in ${provider.name} SMS (id=${id}): ${info}`);
+      return updateStatus(id, config.status.failed, retries - 1);
+    }));
+    return;
+  }
+  // Fallback: individual sends with thread concurrency
   let i = 0;
   const worker = async () => { while (i < rows.length) { const row = rows[i++]; await sendOne(provider, row); } };
-  const n = Math.max(1, config.threads.sms);
-  await Promise.all(Array.from({ length: n }, worker));
+  await Promise.all(Array.from({ length: Math.max(1, config.threads.sms) }, worker));
 }
 
 async function tick() {
