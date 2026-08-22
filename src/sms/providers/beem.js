@@ -96,13 +96,20 @@ async function sendBatch({ rows, config, log }) {
         continue;
       }
 
-      // Map per-recipient results back by phone number
+      // Map per-recipient results back by phone number.
+      // Beem normalises to E.164 (e.g. 255762716079) even if we sent 0762716079,
+      // so index by last 9 digits as a fallback key.
       const msgResults = json?.messages || [];
-      const byTo = new Map(msgResults.map(m => [String(m.to), m]));
+      const byTo = new Map();
+      for (const m of msgResults) {
+        const t = String(m.to);
+        byTo.set(t, m);
+        if (t.length > 9) byTo.set(t.slice(-9), m);
+      }
 
       for (const row of chunk) {
         const to = normalise(row.To ?? row.to ?? '');
-        const m = byTo.get(to);
+        const m = byTo.get(to) || byTo.get(to.slice(-9));
         const groupName = m?.status?.groupName ?? '';
         const ok = /PENDING|ENROUTE|DELIVER|SENT/i.test(groupName);
         results.push({ row, ok, info: JSON.stringify(m ?? json) });
