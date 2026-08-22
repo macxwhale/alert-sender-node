@@ -36,6 +36,7 @@ module.exports = {
   log: { level: val('LogLevel', 'debug'), dir: val('LogDir', 'Log') },
 
   smsServiceType: num('SMSServiceType', 18),
+  smsAllowList: val('SMS_ALLOW_LIST', '*'), // '*' = all, or '255762716079,255716718040'
   status: { sent: num('STATUS_SENT', 2), failed: num('STATUS_FAILED', 3) },
 
   email: {

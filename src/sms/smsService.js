@@ -81,6 +81,12 @@ async function processBatch(provider, rows) {
   await Promise.all(Array.from({ length: Math.max(1, config.threads.sms) }, worker));
 }
 
+function isAllowed(to) {
+  if (config.smsAllowList === '*') return true;
+  const list = config.smsAllowList.split(',').map(s => s.trim());
+  return list.includes(String(to).replace(/[^\d]/g, ''));
+}
+
 async function tick() {
   if (running) return; // skip overlapping ticks
   running = true;
@@ -90,9 +96,15 @@ async function tick() {
     const rows = await getMessages();
     log.info(`Number of SMS found ${rows.length}`);
     if (rows.length === 0) return;
+
+    const allowed = rows.filter(r => isAllowed(pick(r, 'To', 'to', 'MobileNumber', 'Recipient')));
+    if (allowed.length < rows.length)
+      log.info(`Allow list filtered: ${rows.length - allowed.length} skipped, ${allowed.length} queued`);
+    if (allowed.length === 0) return;
+
     const provider = getProvider(config.smsServiceType);
     log.info(`SMS Service Type: ${config.smsServiceType} (${provider.name})`);
-    await processBatch(provider, rows);
+    await processBatch(provider, allowed);
   } catch (e) {
     log.error(`SMS tick error: ${e.message}`);
   } finally {
