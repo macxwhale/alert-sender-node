@@ -102,18 +102,9 @@ async function tick() {
       log.info(`Allow list filtered: ${rows.length - allowed.length} skipped, ${allowed.length} queued`);
     if (allowed.length === 0) return;
 
-    // Per-number ordering: rows are already sorted by Id ASC (oldest first).
-    // Only take the first pending row per phone number so Issued → Called → Served
-    // are never sent out of sequence. Later rows stay queued for the next cycle.
-    const seenNumbers = new Set();
-    const nextInSequence = allowed.filter(r => {
-      const to = String(pick(r, 'To', 'to', 'MobileNumber', 'Recipient') ?? '').replace(/[^\d]/g, '');
-      if (seenNumbers.has(to)) return false;
-      seenNumbers.add(to);
-      return true;
-    });
-    if (nextInSequence.length < allowed.length)
-      log.info(`Sequence filter: sending ${nextInSequence.length} (1 per number), ${allowed.length - nextInSequence.length} deferred to next cycle`);
+    // Rows are ORDER BY Id ASC — oldest first. All pending rows for every number
+    // are sent this cycle in order: Issued first, then Called, then Served.
+    const nextInSequence = allowed;
 
     const provider = getProvider(config.smsServiceType);
     log.info(`SMS Service Type: ${config.smsServiceType} (${provider.name})`);
