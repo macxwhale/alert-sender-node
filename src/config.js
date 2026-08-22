@@ -48,7 +48,8 @@ module.exports = {
   },
 
   beem: {
-    api: val('BEEM_API', 'https://messaging-service.co.tz/api/sms/v2/text/single'),
+    singleApi: val('BEEM_API',       'https://messaging-service.co.tz/api/sms/v2/text/single'),
+    multiApi:  val('BEEM_MULTI_API', 'https://messaging-service.co.tz/api/sms/v2/text/multi'),
     token: val('BEEM_TOKEN'),
     from: val('BEEM_FROM', 'INFO'),
   },
