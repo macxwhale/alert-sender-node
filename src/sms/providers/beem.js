@@ -67,7 +67,7 @@ async function sendBatch({ rows, config, log }) {
 
       const body = {
         from: c.from,
-        to: toList.length === 1 ? toList[0] : toList,
+        to: toList,
         text: message,
         flash: 0,
         reference: String(chunk[0]?.Id || chunk[0]?.id || Date.now()),
