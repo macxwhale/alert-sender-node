@@ -2,8 +2,9 @@
 
 const MAX_BATCH = 100;
 
-function normalise(to) {
-  return String(to).replace(/[^\d]/g, '');
+function normalise(to, countryCode) {
+  const digits = String(to).replace(/[^\d]/g, '');
+  return `${countryCode}${digits.slice(-9)}`;
 }
 
 async function sendSMS({ to, message, row, config, log }) {
@@ -12,7 +13,7 @@ async function sendSMS({ to, message, row, config, log }) {
 
   const body = {
     from: c.from,
-    to: normalise(to),
+    to: normalise(to, c.countryCode),
     text: message,
     flash: 0,
     reference: String(row?.Id || row?.id || Date.now()),
@@ -52,7 +53,7 @@ async function sendBatch({ rows, config, log }) {
     const body = {
       messages: chunk.map(r => ({
         from: c.from,
-        to: normalise(r.To ?? r.to ?? ''),
+        to: normalise(r.To ?? r.to ?? '', c.countryCode),
         text: r.Message ?? r.message ?? r.Body ?? '',
       })),
       flash: 0,

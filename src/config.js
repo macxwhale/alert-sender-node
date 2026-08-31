@@ -52,6 +52,7 @@ module.exports = {
     multiApi:  val('BEEM_MULTI_API', 'https://messaging-service.co.tz/api/sms/v2/text/multi'),
     token: val('BEEM_TOKEN'),
     from: val('BEEM_FROM', 'INFO'),
+    countryCode: val('BEEM_COUNTRY_CODE', '255'),
   },
 
   onfon: {
